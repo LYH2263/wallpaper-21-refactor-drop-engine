@@ -1,6 +1,12 @@
-"""Wallpaper rolls: perimeter strips, pattern repeat on drop length, strips per roll."""
+"""Wallpaper rolls: 入参校验 + 串调 drop_geometry 各子模块。"""
 
-from app.engines.helpers import ceil_units, floor_units
+from app.engines.drop_geometry import (
+    calc_drops,
+    calc_drop_len,
+    calc_rolls,
+    calc_strips_per_roll,
+    pattern_repeat_m,
+)
 
 
 def roll_count(
@@ -10,15 +16,27 @@ def roll_count(
     roll_length: float,
     pattern_cm: float,
 ) -> dict:
-    if roll_width <= 0 or roll_length <= 0:
-        raise ValueError("invalid roll size")
-    drops = ceil_units(float(perimeter) / float(roll_width))
-    pattern_m = max(0.0, float(pattern_cm) / 100.0)
-    drop_len = float(height) + pattern_m
-    if drop_len <= 0:
-        raise ValueError("invalid drop length")
-    strips_per_roll = max(1, floor_units(float(roll_length) / drop_len))
-    rolls = ceil_units(drops / strips_per_roll)
+    perimeter = float(perimeter)
+    height = float(height)
+    roll_width = float(roll_width)
+    roll_length = float(roll_length)
+    pattern_cm = float(pattern_cm)
+    if roll_width <= 0:
+        raise ValueError("invalid roll width")
+    if roll_length <= 0:
+        raise ValueError("invalid roll length")
+    if perimeter < 0:
+        raise ValueError("invalid perimeter")
+    if height < 0:
+        raise ValueError("invalid height")
+    if pattern_cm < 0:
+        raise ValueError("invalid pattern repeat")
+
+    drops = calc_drops(perimeter, roll_width)
+    pattern_m = pattern_repeat_m(pattern_cm)
+    drop_len = calc_drop_len(height, pattern_m)
+    strips_per_roll = calc_strips_per_roll(roll_length, drop_len)
+    rolls = calc_rolls(drops, strips_per_roll)
     return {
         "drops": drops,
         "drop_len_m": round(drop_len, 3),
